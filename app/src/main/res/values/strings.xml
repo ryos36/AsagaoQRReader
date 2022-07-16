@@ -11,7 +11,10 @@
     <string name="button_init">BLE のスキャンの許可をしてください</string>
     <string name="button_has_scan">BLE のコネクトの許可をしてください</string>
     <string name="button_start_scan">BLE SCAN 開始</string>
-    <string name="button_error">想定外</string>
+
+    <string name="bt_scanning">SCAN 中でした</string>
+    <string name="bt_scan_failed">SCAN 失敗</string>
+    <string name="bt_stop_scanning">SCAN を中止しました</string>
 
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
 </resources>

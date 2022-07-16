@@ -2,8 +2,6 @@ package com.sinby.asagao.qrreader
 
 import android.Manifest
 import android.app.Activity
-import android.bluetooth.BluetoothManager
-import android.bluetooth.le.BluetoothLeScanner
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -27,37 +25,8 @@ class FirstFragment : Fragment() {
     // onDestroyView.
     private val binding get() = _binding!!
 
-	//----------------------------------------------------------------
-	private var bluetoothPermissionStatus: Int = STATE_INIT
-    private var bluetoothLeScanner: BluetoothLeScanner? = null
-
-	//----------------------------------------------------------------
-    private fun initialize() {
-        if (bluetoothLeScanner == null) {
-            val manager = requireContext().getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-            val bluetoothAdapter = manager.adapter
-            bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
-        }
-    }
-
-
-	private fun checkPermission() {
-		bluetoothPermissionStatus = STATE_INIT
-		
-        if (checkSelfPermission( this.requireContext(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-			return
-		}
-		bluetoothPermissionStatus = STATE_HAS_BLUETOOTH_SCAN_PERMISSION
-        if (checkSelfPermission( this.requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-			return
-		}
-		bluetoothPermissionStatus = STATE_HAS_BLUETOOTH_CONNECT_PERMISSION
-	}
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        checkPermission()
     }
 
 
@@ -68,23 +37,6 @@ class FirstFragment : Fragment() {
 
         _binding = FragmentFirstBinding.inflate(inflater, container, false)
         return binding.root
-    }
-
-    private fun getButtonString() : String {
-        return when(bluetoothPermissionStatus) {
-            STATE_INIT -> {
-                getString(R.string.button_init)
-            }
-            STATE_HAS_BLUETOOTH_SCAN_PERMISSION ->  {
-                getString(R.string.button_has_scan)
-            }
-            STATE_HAS_BLUETOOTH_CONNECT_PERMISSION ->  {
-                getString(R.string.button_start_scan)
-            }
-            else -> {
-                getString(R.string.button_error)
-            }
-        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -99,10 +51,4 @@ class FirstFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
-
-    companion object {
-        const val STATE_INIT = 0
-        const val STATE_HAS_BLUETOOTH_SCAN_PERMISSION = 1
-        const val STATE_HAS_BLUETOOTH_CONNECT_PERMISSION = 2
-	}
 }
