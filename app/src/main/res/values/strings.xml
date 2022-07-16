@@ -17,4 +17,5 @@
     <string name="bt_stop_scanning">SCAN を中止しました</string>
 
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
+    <string name="no_bluetooth">No Bluetooth No Application</string>
 </resources>

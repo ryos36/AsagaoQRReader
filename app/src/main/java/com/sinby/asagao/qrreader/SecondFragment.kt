@@ -13,8 +13,12 @@ import android.bluetooth.BluetoothManager
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.os.Handler
+import android.os.IBinder
 import android.os.Looper
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.PermissionChecker.checkSelfPermission
@@ -38,8 +42,30 @@ class SecondFragment : Fragment() {
 
 	private var runnable = Runnable { stopScanning() }
 
+    private var service: BLEService? = null
+
+    //----------------------------------------------------------------
+    private val serviceConnection: ServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(
+            componentName: ComponentName,
+            binder: IBinder
+        ) {
+            service = (binder as BLEService.LocalBinder).getService()
+
+            service?.let {
+				if (!it.initialize()) {
+					service = null
+				}
+            }
+        }
+
+        override fun onServiceDisconnected(componentName: ComponentName) {
+            service = null
+        }
+    }
+
 	//----------------------------------------------------------------
-    private fun initialize() {
+    private fun initializeScanning() {
         if ( bluetoothLeScanner == null ) {
             val manager = requireContext().getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
             val bluetoothAdapter = manager.adapter
@@ -71,8 +97,18 @@ class SecondFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Bluetooth のサービスにコネクトする
+        val gattServiceIntent = Intent(this.requireContext(), BLEService::class.java)
+        val rv = this.requireContext().bindService(gattServiceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
+        if (!rv) {
+            Toast.makeText(
+                    this.requireContext(),
+                    getString(R.string.no_bluetooth),
+                    Toast.LENGTH_LONG).show()
+        }
+
         handler = Handler(Looper.myLooper()!!)
-        initialize()
+        initializeScanning()
 
         if (checkSelfPermission( this.requireContext(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
 			val requestPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { result ->
