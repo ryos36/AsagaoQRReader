@@ -20,10 +20,13 @@ import android.content.ServiceConnection
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.PermissionChecker.checkSelfPermission
 import androidx.navigation.fragment.findNavController
 import com.sinby.asagao.qrreader.databinding.FragmentSecondBinding
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /*
  *
@@ -43,6 +46,15 @@ class SecondFragment : Fragment() {
 	private var runnable = Runnable { stopScanning() }
 
     private var service: BLEService? = null
+	private val mutex = Mutex()
+
+	private val requestPermission =  registerForActivityResult(ActivityResultContracts.RequestPermission()) { result ->
+				if (result) {
+					checkPermission()
+				} else {
+					Toast.makeText(this.requireContext(), "Permission Denied.", Toast.LENGTH_SHORT).show()
+				}
+			}
 
     //----------------------------------------------------------------
     private val serviceConnection: ServiceConnection = object : ServiceConnection {
@@ -74,17 +86,19 @@ class SecondFragment : Fragment() {
     }
 
     // ToDo: synchronized method
-    private fun startScanning() {
-        if (scanCallback != null) {
-            Toast.makeText(requireContext(), getString(R.string.bt_scanning), Toast.LENGTH_LONG).show()
-            return
-        }
-        scanCallback = AsagaoScanCallback()
-        bluetoothLeScanner?.startScan(scanCallback)
+	@Synchronized
+	private fun startScanning() {
+		if (scanCallback != null) {
+			Toast.makeText(requireContext(), getString(R.string.bt_scanning), Toast.LENGTH_LONG).show()
+			return
+		}
+		scanCallback = AsagaoScanCallback()
+		bluetoothLeScanner?.startScan(scanCallback)
 
 		handler?.postDelayed(runnable, SCAN_PERIOD_IN_MILLIS)
     }
 
+	@Synchronized
     private fun stopScanning() {
 		if ( scanCallback != null ) {
 			bluetoothLeScanner?.stopScan(scanCallback)
@@ -93,11 +107,29 @@ class SecondFragment : Fragment() {
 		}
     }
 
+    //----------------------------------------------------------------
+	private fun checkPermission() {
+        if (checkSelfPermission( this.requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+			return
+		}
+        if (checkSelfPermission( this.requireContext(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            requestPermission.launch(Manifest.permission.BLUETOOTH_SCAN)
+			return
+		}
+        if (checkSelfPermission( this.requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            requestPermission.launch(Manifest.permission.BLUETOOTH_CONNECT)
+			return
+        }
+		startScanning()
+	}
+
 	//----------------------------------------------------------------
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Bluetooth のサービスにコネクトする
+		/*
         val gattServiceIntent = Intent(this.requireContext(), BLEService::class.java)
         val rv = this.requireContext().bindService(gattServiceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
         if (!rv) {
@@ -106,45 +138,11 @@ class SecondFragment : Fragment() {
                     getString(R.string.no_bluetooth),
                     Toast.LENGTH_LONG).show()
         }
+		*/
 
         handler = Handler(Looper.myLooper()!!)
         initializeScanning()
 
-        if (checkSelfPermission( this.requireContext(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-			val requestPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { result ->
-				if (result) {
-                    startScanning()
-				} else {
-					Toast.makeText(this.requireContext(), "Permission Denied.", Toast.LENGTH_SHORT).show()
-				}
-			}
-
-			requestPermission.launch(Manifest.permission.BLUETOOTH_SCAN)
-		} else {
-            startScanning()
-        }
-		
-		/*
-        if (checkSelfPermission( this.requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-			val requestPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { result ->
-				if (result) {
-					Toast.makeText(
-						this.requireContext(),
-						"Permission Accepted.",
-						Toast.LENGTH_SHORT
-					).show()
-
-					//bluetoothLeScanner?.startScan(scanCallback)
-				} else {
-					// リクエスト拒否時の処理
-					Toast.makeText(this.requireContext(), "Permission Denied.", Toast.LENGTH_SHORT)
-						.show()
-				}
-			}
-
-			requestPermission.launch(Manifest.permission.BLUETOOTH_CONNECT)
-		}
-		*/
     }
 
 	//----------------------------------------------------------------
@@ -153,9 +151,9 @@ class SecondFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
 
+        checkPermission()
         _binding = FragmentSecondBinding.inflate(inflater, container, false)
         return binding.root
-
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
