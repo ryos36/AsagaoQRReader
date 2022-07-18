@@ -3,23 +3,18 @@ package com.sinby.asagao.qrreader
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
-import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import android.bluetooth.BluetoothManager
-import android.bluetooth.le.BluetoothLeScanner
-import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanResult
+import android.bluetooth.le.*
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.os.Handler
-import android.os.IBinder
-import android.os.Looper
+import android.os.*
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.PermissionChecker.checkSelfPermission
@@ -92,8 +87,17 @@ class SecondFragment : Fragment() {
 			Toast.makeText(requireContext(), getString(R.string.bt_scanning), Toast.LENGTH_LONG).show()
 			return
 		}
+
+		val SERVICE_UUID: String = "64251f3a-60b5-47a5-87b8-fe974bb0b89c"
+		val scanFilter: ScanFilter = ScanFilter.Builder()
+            .setServiceUuid(ParcelUuid.fromString(SERVICE_UUID))
+            .build()
+
+		val settings: ScanSettings  = ScanSettings.Builder()
+			.setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+			.build();
 		scanCallback = AsagaoScanCallback()
-		bluetoothLeScanner?.startScan(scanCallback)
+		bluetoothLeScanner?.startScan(listOf(scanFilter), settings, scanCallback)
 
 		handler?.postDelayed(runnable, SCAN_PERIOD_IN_MILLIS)
     }
@@ -220,4 +224,3 @@ class SecondFragment : Fragment() {
         private const val SCAN_PERIOD_IN_MILLIS: Long = 90_000
     }
 }
-
